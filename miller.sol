@@ -6,8 +6,12 @@ pragma solidity ^0.8.10;
 contract Content {
     
     uint public balances;
-    uint creationFee = 1 ether;
-    uint premiumFee = 10 ether;
+    uint creationFee = 100 wei;
+    uint premiumFee = 10000 wei;
+    uint platformReward = 300;
+    uint creatorReward = 9700;
+
+
 
     struct Creators{
 
@@ -50,13 +54,18 @@ contract Content {
         emit CreatorChoice(_choice);
     }
 
-    function readContent() payable public {
+    function readContent(address addr) payable public {
         require (msg.value >= premiumFee);
-        payable (address(this)).transfer(premiumFee);
-        balances += msg.value;
+        payable (address(this)).transfer(platformReward);
+        payable (addr).transfer(creatorReward);
+        balances += platformReward;
         SpecificContent storage specific = specificContentReaders[readerIndex];
         specific.readersAddress = msg.sender;
         readerIndex++;
     }
+
+    // function platformReturns() payable public{
+
+    // }
 
 }
