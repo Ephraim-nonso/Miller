@@ -5,13 +5,21 @@ pragma solidity ^0.8.10;
 
 contract Content {
     
+    address payable Owner;
     uint public balances;
     uint creationFee = 100 wei;
     uint premiumFee = 10000 wei;
     uint platformReward = 300;
     uint creatorReward = 9700;
-
-
+    
+    constructor(address payable _Owner){
+    Owner = _Owner;
+    }
+    
+    modifier onlyOwner(){
+    require (msg.sender == Owner, "you cant call this function");
+    _;
+    }
 
     struct Creators{
 
@@ -34,38 +42,49 @@ contract Content {
     mapping(uint => Creators) public creatorList;
     mapping(address => bool) public createList;
     mapping(uint => SpecificContent) public specificContentReaders;
-    uint index = 1;
+    uint public index = 1;
     uint readerIndex = 1;
 
-    function create(choice _choice, uint _creationFee) payable public { 
-        _creationFee = creationFee;
+    function create(choice _choice) payable public { 
         require (msg.value >= creationFee);
-        payable (address(this)).transfer(creationFee);
         balances += msg.value;
         if(createList[msg.sender] == true){
             Creators storage c = creatorList[index];
             c.publicationNumber++;
         }
+        else{
         Creators storage creator = creatorList[index];
         creator._address = msg.sender;
         creator.publicationNumber++;
         creator.created = true;
         index++;
+        }
         emit CreatorChoice(_choice);
     }
 
-    function readContent(address addr) payable public {
-        require (msg.value >= premiumFee);
-        payable (address(this)).transfer(platformReward);
-        payable (addr).transfer(creatorReward);
-        balances += platformReward;
-        SpecificContent storage specific = specificContentReaders[readerIndex];
-        specific.readersAddress = msg.sender;
-        readerIndex++;
+    function readContent(choice readerChoice, address addr) payable public {
+        if(readerChoice == choice.premium){
+            require (msg.value >= premiumFee);
+            balances += platformReward;
+            readPremium(addr);
+            SpecificContent storage specific = specificContentReaders[readerIndex];
+            specific.readersAddress = msg.sender;
+            readerIndex++;
+        } 
+        else{
+            SpecificContent storage specific = specificContentReaders[readerIndex];
+            specific.readersAddress = msg.sender;
+            readerIndex++;
+        }
+    }
+    
+     function withdraw(uint amount) public onlyOwner  {
+        require(amount <= balances, "you are not authorized");
+        balances -= amount;
+        Owner.transfer(amount);
     }
 
-    // function platformReturns() payable public{
-
-    // }
-
+    function readPremium(address addr) private{
+        payable (addr).transfer(creatorReward);
+    }
 }
